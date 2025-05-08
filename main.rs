@@ -1,5 +1,7 @@
-extern "Rust" {
-    pub fn spec_extend(arr: &mut [u8; 10], ptr: *const u8, end: *const u8);
+#![no_main]
+
+extern "C-unwind" {
+    fn dbg_slice_from_ptr_end(ptr: *const u8, end: *const u8);
 }
 
 pub enum Version {
@@ -11,26 +13,22 @@ pub enum Version {
 }
 
 #[inline]
-pub fn extend_from_slice(arr: &mut [u8; 10], slice: &[u8]) {
+pub fn dbg_slice(slice: &[u8]) {
     let ptr = slice.as_ptr();
     let end = unsafe { ptr.add(slice.len()) };
-    assert!(slice.len() <= 10);
-    unsafe { spec_extend(arr, ptr, end) }
+    unsafe { dbg_slice_from_ptr_end(ptr, end) }
 }
 
-#[inline(never)]
-#[export_name = "encode"]
-pub fn encode(version: Version, dst: &mut [u8; 10]) -> NonTrivialDrop {
-    let has_drop = NonTrivialDrop;
+#[export_name = "main"]
+fn main() {
+    let _has_drop = NonTrivialDrop;
 
-    match version {
-        Version::Http10 => extend_from_slice(dst, b"HTTP/1.0"),
-        Version::Http11 => extend_from_slice(dst, b"HTTP/1.1"),
-        Version::H2 => extend_from_slice(dst, b"HTTP/1.1"),
+    match core::hint::black_box(Version::Http11) {
+        Version::Http10 => dbg_slice(b"HTTP/1.0"),
+        Version::Http11 => dbg_slice(b"HTTP/1.1"),
+        Version::H2 => dbg_slice(b"HTTP/1.1"),
         _ => {}
     }
-
-    has_drop
 }
 
 pub struct NonTrivialDrop;
@@ -41,10 +39,4 @@ impl Drop for NonTrivialDrop {
     fn drop(&mut self) {
         core::hint::black_box(());
     }
-}
-
-fn main() {
-    let mut dst = [0; 10];
-    encode(Version::Http11, &mut dst);
-    eprintln!("{dst:?}");
 }
