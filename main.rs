@@ -1,9 +1,6 @@
-#![crate_type = "lib"]
-#![no_std]
+extern crate extend;
 
-extern crate custom_std;
-
-pub use custom_std::{Array, spec_extend};
+pub use extend::{Array, spec_extend};
 
 pub enum Version {
     Http09,
@@ -21,6 +18,7 @@ pub fn extend_from_slice(arr: &mut Array, slice: &[u8]) {
     spec_extend(arr, ptr, end)
 }
 
+#[inline(never)]
 #[export_name = "encode"]
 pub fn encode(version: Version, dst: &mut Array) -> NonTrivialDrop {
     let has_drop = NonTrivialDrop;
@@ -43,4 +41,10 @@ impl Drop for NonTrivialDrop {
     fn drop(&mut self) {
         core::hint::black_box(());
     }
+}
+
+fn main() {
+    let mut dst = [0; 10];
+    encode(Version::Http11, &mut dst);
+    eprintln!("{dst:?}");
 }
