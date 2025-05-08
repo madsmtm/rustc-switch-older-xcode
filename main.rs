@@ -1,7 +1,15 @@
 #![no_main]
 
-extern "C-unwind" {
-    fn dbg_slice_from_ptr_end(ptr: *const u8, end: *const u8);
+#[inline(never)]
+pub unsafe fn slice_len_from_ptr_end(ptr: *const u8, end: *const u8) -> usize {
+    core::hint::black_box(unsafe { end.offset_from(ptr) as usize })
+}
+
+#[inline]
+pub fn slice_len(slice: &[u8]) -> usize {
+    let ptr = slice.as_ptr();
+    let end = unsafe { ptr.add(slice.len()) };
+    unsafe { slice_len_from_ptr_end(ptr, end) }
 }
 
 pub struct NonTrivialDrop;
@@ -22,28 +30,19 @@ pub enum Version {
     H3,
 }
 
-#[inline]
-pub fn dbg_slice(slice: &[u8]) {
-    let ptr = slice.as_ptr();
-    let end = unsafe { ptr.add(slice.len()) };
-    unsafe { dbg_slice_from_ptr_end(ptr, end) }
-}
-
 #[no_mangle]
-fn broken() {
+fn broken() -> usize {
     let _has_drop = NonTrivialDrop;
 
     match core::hint::black_box(Version::Http11) {
-        Version::Http10 => dbg_slice(b"HTTP/1.0"),
-        Version::Http11 => dbg_slice(b"HTTP/1.1"),
-        Version::H2 => dbg_slice(b"HTTP/1.1"),
-        _ => {}
+        Version::Http10 => slice_len(b"HTTP/1.0"),
+        Version::Http11 => slice_len(b"HTTP/1.1"),
+        Version::H2 => slice_len(b"HTTP/1.1"),
+        _ => 0,
     }
 }
 
 #[no_mangle]
 extern "C" fn main(/* argv, argc */) -> core::ffi::c_int {
-    broken();
-
-    0
+    broken() as _
 }
