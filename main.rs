@@ -1,6 +1,7 @@
 #![no_main]
 
 #[inline(never)]
+#[no_mangle]
 pub unsafe fn slice_len_from_ptr_end(ptr: *const u8, end: *const u8) -> usize {
     core::hint::black_box(unsafe { end.offset_from(ptr) as usize })
 }
