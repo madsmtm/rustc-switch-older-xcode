@@ -20,7 +20,7 @@ pub fn dbg_slice(slice: &[u8]) {
 }
 
 #[export_name = "main"]
-fn main() {
+extern "C" fn main(/* argv, argc */) -> core::ffi::c_int {
     let _has_drop = NonTrivialDrop;
 
     match core::hint::black_box(Version::Http11) {
@@ -29,6 +29,8 @@ fn main() {
         Version::H2 => dbg_slice(b"HTTP/1.1"),
         _ => {}
     }
+
+    0
 }
 
 pub struct NonTrivialDrop;
