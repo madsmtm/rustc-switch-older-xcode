@@ -4,6 +4,16 @@ extern "C-unwind" {
     fn dbg_slice_from_ptr_end(ptr: *const u8, end: *const u8);
 }
 
+pub struct NonTrivialDrop;
+
+impl Drop for NonTrivialDrop {
+    #[inline(never)]
+    #[export_name = "non_trivial_drop"]
+    fn drop(&mut self) {
+        core::hint::black_box(());
+    }
+}
+
 pub enum Version {
     Http09,
     Http10,
@@ -19,8 +29,8 @@ pub fn dbg_slice(slice: &[u8]) {
     unsafe { dbg_slice_from_ptr_end(ptr, end) }
 }
 
-#[export_name = "main"]
-extern "C" fn main(/* argv, argc */) -> core::ffi::c_int {
+#[no_mangle]
+fn broken() {
     let _has_drop = NonTrivialDrop;
 
     match core::hint::black_box(Version::Http11) {
@@ -29,16 +39,11 @@ extern "C" fn main(/* argv, argc */) -> core::ffi::c_int {
         Version::H2 => dbg_slice(b"HTTP/1.1"),
         _ => {}
     }
-
-    0
 }
 
-pub struct NonTrivialDrop;
+#[no_mangle]
+extern "C" fn main(/* argv, argc */) -> core::ffi::c_int {
+    broken();
 
-impl Drop for NonTrivialDrop {
-    #[inline(never)]
-    #[export_name = "non_trivial_drop"]
-    fn drop(&mut self) {
-        core::hint::black_box(());
-    }
+    0
 }
