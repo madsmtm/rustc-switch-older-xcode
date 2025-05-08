@@ -1,6 +1,6 @@
-extern crate extend;
-
-pub use extend::{Array, spec_extend};
+extern "Rust" {
+    pub fn spec_extend(arr: &mut [u8; 10], ptr: *const u8, end: *const u8);
+}
 
 pub enum Version {
     Http09,
@@ -11,16 +11,16 @@ pub enum Version {
 }
 
 #[inline]
-pub fn extend_from_slice(arr: &mut Array, slice: &[u8]) {
+pub fn extend_from_slice(arr: &mut [u8; 10], slice: &[u8]) {
     let ptr = slice.as_ptr();
     let end = unsafe { ptr.add(slice.len()) };
     assert!(slice.len() <= 10);
-    spec_extend(arr, ptr, end)
+    unsafe { spec_extend(arr, ptr, end) }
 }
 
 #[inline(never)]
 #[export_name = "encode"]
-pub fn encode(version: Version, dst: &mut Array) -> NonTrivialDrop {
+pub fn encode(version: Version, dst: &mut [u8; 10]) -> NonTrivialDrop {
     let has_drop = NonTrivialDrop;
 
     match version {
