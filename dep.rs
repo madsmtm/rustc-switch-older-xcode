@@ -1,6 +1,5 @@
 #![crate_type = "lib"]
 
-#[derive(PartialEq, PartialOrd, Copy, Clone, Eq, Ord, Hash, Debug)]
 pub enum Version {
     Http09,
     Http10,
@@ -9,25 +8,25 @@ pub enum Version {
     H3,
 }
 
-pub fn encode(version: &Version, dst: &mut Vec<u8>) -> HasDrop {
-    let has_drop = HasDrop;
+pub fn encode(version: Version, dst: &mut Vec<u8>) -> NonTrivialDrop {
+    let has_drop = NonTrivialDrop;
 
     match version {
         Version::Http10 => dst.extend_from_slice(b"HTTP/1.0"),
         Version::Http11 => dst.extend_from_slice(b"HTTP/1.1"),
         Version::H2 => dst.extend_from_slice(b"HTTP/1.1"),
-        _ => std::process::abort(),
+        _ => {}
     }
 
     has_drop
 }
 
-/// Something with a non-trivial Drop.
-pub struct HasDrop;
+pub struct NonTrivialDrop;
 
-impl Drop for HasDrop {
+impl Drop for NonTrivialDrop {
     #[inline(never)]
+    #[export_name = "non_trivial_drop"]
     fn drop(&mut self) {
-        eprintln!("drop");
+        let _ = Box::new(0);
     }
 }
